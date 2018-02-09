@@ -162,6 +162,8 @@
     [(eqv? num 0) (car env)]
     [else (apply-env-lex (cdr env) (sub1 num))]))
 
+;(define apply-env-lex list-ref)
+
 (define extend-env-lex cons)
 
 ;Q7 Church sub1
