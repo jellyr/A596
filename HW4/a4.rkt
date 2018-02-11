@@ -1,4 +1,5 @@
 #lang racket
+(require racket/trace)
 
 ;Q1
 (define lex
@@ -122,4 +123,69 @@
 
 
 
-;Q3
+;Q3 dynamic scope
+(define value-of-dynamic
+  (lambda (exp env)
+    (match exp
+      [`,n #:when (number? n) n]
+      [`,b #:when (boolean? b) b]
+      [`,i #:when (integer? i) i]
+      [`,y #:when (symbol? y) (unbox (env y))]
+      [`(zero? ,z) (zero? (value-of-dynamic z env))]
+      [`(null? ,x) (null? (value-of-dynamic x env))]
+      [`(begin2 ,first ,second) (begin (value-of-dynamic first env)
+                                       (value-of-dynamic second env))]
+      [`(sub1 ,s) (sub1 (value-of-dynamic s env))]
+      [`(* ,a ,b) (* (value-of-dynamic a env) (value-of-dynamic b env))]
+      [`(lambda (,x) ,body)
+       (lambda (arg env)
+         (value-of-dynamic body (lambda (y) (if (eqv? y x) arg (env y)))))]
+      [`(if ,condition ,then ,else)
+       (if (value-of-dynamic condition env)
+           (value-of-dynamic then env)
+           (value-of-dynamic else env))]
+      [`(let ([,x ,e]) ,body)
+       (let ([value (box (value-of-dynamic e env))])
+         ;calculate the expression first!
+         ;Because the body can have some set expression which can mutate the binding.
+         (value-of-dynamic body (lambda (y) (if (eqv? y x) value (env y)))))]
+      ;in racket, the [] in let expression can be also matched with ()
+      ;Q:what if there are multiple binidng...
+      [`(set! ,var ,value) (set-box! (env var) (value-of-dynamic value env))]
+      [`(quote ,v) v]
+      [`(cons ,a ,b) (cons (value-of-dynamic a env) (value-of-dynamic b env))]
+      [`(car ,x) (car (value-of-dynamic x env))]
+      [`(cdr ,x) (cdr (value-of-dynamic x env))]
+      [`(,rator ,rand)
+       ((value-of-dynamic rator env) (box (value-of-dynamic rand env)) env)])))
+
+
+;Q4
+(define value-of-ri
+  (lambda (empty-env extend-env apply-env closure apply-closure)
+    (letrec ([value-of
+              (lambda (exp env)
+                (match exp
+                  [`,n #:when (number? n) n]
+                  [`,b #:when (boolean? b) b]
+                  [`,i #:when (integer? i) i]
+                  [`,y #:when (symbol? y) (apply-env env y)]
+                  [`(zero? ,z) (zero? (value-of z env))]
+                  [`(sub1 ,s) (sub1 (value-of s env))]
+                  [`(* ,a ,b) (* (value-of a env) (value-of b env))]
+                  [`(lambda (,x) ,body)
+                   ((closure value-of extend-env) body x env)]
+                  [`(if ,condition ,then ,else)
+                   (if (value-of condition env)
+                       (value-of then env)
+                       (value-of else env))]
+                  [`(let ([,x ,e]) ,body)
+      
+                   (((closure value-of extend-env) body x env) (value-of e env))
+                   ]
+                  [`(,rator ,rand)
+                   (apply-closure (value-of rator env) (value-of rand env))]))])
+      (lambda (exp) (value-of exp empty-env)))))
+
+
+
