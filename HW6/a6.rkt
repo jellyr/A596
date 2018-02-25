@@ -59,6 +59,7 @@
       [else (remv-first-9*-cps (cdr ls) (lambda (v) (k (cons (car ls) v))))])))
 
 ;Q6
+#;
 (define cons-cell-count-cps
   (lambda (ls k)
     (cond
@@ -70,6 +71,19 @@
                                (lambda (v2)
                                  (k (add1 (+ v1 v2)))))))]
       [else (k 0)])))
+
+
+(define cons-cell-count-cps
+  (lambda (ls k)
+    (cond
+      [(pair? ls)
+       (add1
+        (k (cons-cell-count-cps (car ls)
+                                (lambda (v)
+                                  (cons-cell-count-cps (cdr ls)
+                                                       (lambda (v2) (+ v v2)))))))]
+      [else (k 0)])))
+
 
 ;Q7
 (define find-cps
@@ -96,8 +110,9 @@
          [(zero? n) (k2 0)]
          [(zero? (sub1 n)) (k2 1)]
          [else (fib2 fib2 (sub1 n)
-                     (lambda (v) (fib2 fib2 (sub1 (sub1 n))
-                                       (lambda (v2) (k2 (+ v v2))))))])) k)))
+                     (lambda (v)
+                       (fib2 fib2 (sub1 (sub1 n))
+                             (lambda (v2) (k2 (+ v v2))))))])) k)))
 
 ;Q10
 (define unfold
@@ -123,7 +138,7 @@
                      (h h (lambda (h-fun)
                             (g seed (lambda (g-v)
                                       (f seed (lambda (f-v)
-                                      (h-fun g-v (cons f-v ans) k)))))))))))))k)))
+                                                (h-fun g-v (cons f-v ans) k)))))))))))))k)))
 
 (define null?-cps
   (lambda (ls k)
@@ -139,7 +154,7 @@
 
 ;(unfold-cps null?-cps car-cps cdr-cps '(a b c d e) (empty-k))
 
-(unfold-cps null?-cps car-cps cdr-cps '(a b c d e) (lambda (v) v))
+;(unfold-cps null?-cps car-cps cdr-cps '(a b c d e) (lambda (v) v))
 
 ;Q11
 (define empty-s
@@ -186,7 +201,6 @@
                                   (fun (cdr ls) (lambda (d) (k2 (cons v d))))
                                   ))))))))))
 
-
 ;Q13
 (define use-of-M-cps
   (M-cps (lambda (n k) (k (add1 n))) (lambda (f) (f '(1 2 3 4 5) (empty-k)))))
@@ -211,5 +225,33 @@
   (let ([strange^ (((strange-cps 5 (empty-k)) 6 (empty-k)) 7 (empty-k))])
     (((strange^ 8 (empty-k)) 9 (empty-k)) 10 (empty-k))))
 
+;Q16
+(define why
+  (lambda (f)
+    ((lambda (g)
+       (f (lambda (x) ((g g) x))))
+     (lambda (g)
+       (f (lambda (x) ((g g) x)))))))
 
+(define why-cps
+  (lambda (f k)
+    ((lambda (g k)
+       (f (lambda (x k) (g g (lambda (g-fun) (g-fun x k))))k))
+     (lambda (g k)
+       (f (lambda (x k) (g g (lambda (g-fun) (g-fun x k))))k))k)))
 
+(define almost-length
+  (lambda (f)
+    (lambda (ls)
+      (if (null? ls)
+          0
+          (add1 (f (cdr ls)))))))
+
+(define almost-length-cps
+  (lambda (f k)
+    (k (lambda (ls k)
+         (if (null? ls)
+             (k 0)
+             (f (cdr ls) (lambda (v) (k (add1 v)))))))))
+
+;((why-cps almost-length-cps (empty-k)) '(a b c d e) (empty-k))
