@@ -147,3 +147,34 @@
 (define empty-k
   (lambda () `(empty)))
 
+
+;Q4
+
+(define-syntax cons$
+  (syntax-rules ()
+    ((cons$ x y) (cons x (delay y)))))
+ 
+(define car$ car)
+ 
+(define cdr$
+  (lambda ($) (force (cdr $))))
+
+(define inf-1s (cons$ 1 inf-1s))
+
+(define take$
+  (lambda (n $)
+    (cond
+      ((zero? n) '())
+      (else (cons (car$ $) 
+              (let ((n- (sub1 n)))
+                (cond
+                  ((zero? n-) '())
+                  (else (take$ n- (cdr$ $))))))))))
+
+(define 3sum
+  (lambda (l1 l2 l3)
+    (cons$ (+ (car$ l1) (car$ l2) (car$ l3)) (3sum (cdr$ l1)(cdr$ l2)(cdr$ l3)))))
+
+(define trib$
+  (cons$ 0 (cons$ 1 (cons$ 1 (3sum trib$ (cdr$ trib$) (cdr$ (cdr$ trib$)))))))
+  
